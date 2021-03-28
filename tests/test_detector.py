@@ -3,9 +3,9 @@ from typing import Tuple, Iterable, List
 import numpy as np
 import pandas as pd
 
-from time_series_anomaly_detection.detector import TemplateDetector
+from time_series_anomaly_detection.detector import GAN_AD
 
-DETECTOR_CLASS = TemplateDetector
+DETECTOR_CLASS = GAN_AD
 
 
 def _get_simple_random_dataset(

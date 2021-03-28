@@ -7,9 +7,9 @@ from time_series_anomaly_detection.abstractions import (
 )
 
 
-class TemplateDetector(TimeSeriesAnomalyDetector):
+class GAN_AD(TimeSeriesAnomalyDetector):
     """
-    Time series anomaly detector template.
+    Time series GAN anomaly detector.
 
     Parameters
     ----------
