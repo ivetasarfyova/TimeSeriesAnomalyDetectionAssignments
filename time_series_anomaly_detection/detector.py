@@ -172,7 +172,10 @@ class GAN_AD(TimeSeriesAnomalyDetector):
                 self.save_weights("gan_ad_" + str(date.today()) + "_epoch_" + str(epoch) + ".h5")
                 
     def fit_scaler(self, data: pd.DataFrame) -> None:
-        self._scaler.fit(data)        
+        self._scaler.fit(data)
+        
+    def transform_data(self, data: pd.DataFrame) -> None:
+        self._scaler.transform(data) 
                 
     def _preprocess_data(self, data: pd.DataFrame) -> tf.data.Dataset:
         # TODO remove idcols
@@ -275,6 +278,15 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8942842&tag=1 1 - real_prob makes more sense
         anomaly_score = tf.add((1-lamda)*residuals, tf.cast(lamda*(1-real_prob), tf.float64))
         return anomaly_score
+    
+    def _replace_NaN_values(self, X: pd.DataFrame, rows_with_NaN: pd.Index) -> pd.DataFrame:
+        
+        mean_vals = pd.DataFrame(X.mean())
+
+        for row in rows_with_NaN:
+            X.iloc[[row]] = np.transpose(mean_vals).iloc[[0],:].values
+
+        return X
         
     def predict_anomaly_scores(
             self, X: pd.DataFrame, *args, **kwargs
@@ -284,20 +296,33 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             print("Not enough data to predict anomaly scores.")
             return
         
-        X = self._scaler.transform(X)
-        
         resid = X.shape[0]%self._window_size
         if(resid != 0):
             print("Ignoring last " + str(resid) + " samples (incomplete window).")
         
-        # TODO split to windows and for each window
+        # checking if there are any NaN values
+        is_NaN = X.isnull()
+        row_has_NaN = is_NaN.any(axis=1)
+        rows_with_NaN = X[row_has_NaN]
+        
+        if(not rows_with_NaN.empty):
+            X = self._replace_NaN_values(X, rows_with_NaN.index)
+        
+        X = self._scaler.transform(X)
         windows = [pd.DataFrame(X[i:i+self._window_size]) for i in range(0,X.shape[0]-resid,self._window_size)]
         
         anomaly_score = tf.concat([self.predict_window_anomaly_scores(X_window) for X_window in windows], -1)
-        return pd.Series(anomaly_score)
+        anomaly_score = pd.Series(anomaly_score).copy()
+        
+        if(not rows_with_NaN.empty):
+            anomaly_score.at[rows_with_NaN.index] = np.nan
+            
+        return anomaly_score
     
     def identify_anomaly(self, X: pd.DataFrame, treshold: Optional[int] = 1) -> np.array:
         anomaly_score = self.predict_anomaly_scores(X)
+        print("anomaly_score")
+        print(anomaly_score)
         cross_entropy = np.log(anomaly_score)
         print('cross_entropy')
         print(cross_entropy)
