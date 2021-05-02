@@ -132,7 +132,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     def load_weights(self, file_name:str) -> None:
         self._gan_ad.load_weights(file_name)
     
-    def _train(self, dataset, epochs: int, enable_prints: Optional[bool] = False):
+    def _train(self, dataset, epochs: int, save_checkpoints: Optional[bool] = False,
+               enable_prints: Optional[bool] = False) -> None:
         loss_history = []
         for epoch in range(epochs):
             batch_loss_history = []
@@ -168,24 +169,40 @@ class GAN_AD(TimeSeriesAnomalyDetector):
                     axs[int(i%3), int(i/3)].plot(generated_sample.numpy())
                 plt.show()
                 print()
-            if ((epoch != 0) and (epoch%1000 == 0)):
+            if (save_checkpoints and (epoch != 0) and (epoch%100 == 0)):
                 self.save_weights("gan_ad_" + str(date.today()) + "_epoch_" + str(epoch) + ".h5")
                 
     def fit_scaler(self, data: pd.DataFrame) -> None:
         self._scaler.fit(data)
         
-    def transform_data(self, data: pd.DataFrame) -> None:
-        self._scaler.transform(data) 
-                
-    def _preprocess_data(self, data: pd.DataFrame) -> tf.data.Dataset:
-        # TODO remove idcols
-        data_scaled = self._scaler.fit_transform(data)
-        # TODO for different time series types
-        # TODO remove seed
+    def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        data = self._scaler.transform(data) 
+        return pd.DataFrame(data)
+    
+    def _get_dataset(self, data: pd.DataFrame) -> tf.data.Dataset:
+        
+        data_scaled = pd.DataFrame(self._scaler.fit_transform(data))
         dataset = tf.keras.preprocessing.timeseries_dataset_from_array(data_scaled.astype(np.float),
                                                                targets=None, sequence_length=self._window_size,
                                                                sequence_stride=self._shift, sampling_rate=1,
                                                                batch_size=self._batch_size, shuffle=True, seed=6)
+        return dataset
+                
+    def _preprocess_data(self, data: pd.DataFrame) -> tf.data.Dataset:
+        
+        if(self._id_columns == None):
+            dataset = self._get_dataset(data)
+        else:
+            dfs = [x.reset_index(drop=True) for _, x in data.groupby(self._id_columns)]
+            [df.drop(columns=self._id_columns, inplace=True) for df in dfs]
+            datasets = [self._get_dataset(df) for df in dfs]
+            
+            dataset = datasets.pop(0)
+            for single_dataset in datasets:
+                dataset = dataset.concatenate(single_dataset)
+                
+            dataset = dataset.shuffle(buffer_size=len(data), seed=6)
+            
         return dataset
     
     def fit(self, X: pd.DataFrame, n_epochs: int, d_learning_rate: float = 0.0002,
@@ -197,7 +214,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._discriminator_optimizer = RMSprop(learning_rate=d_learning_rate)
         self._generator_optimizer = Adam(learning_rate=g_learning_rate, beta_1=0.5) 
 
-        self._train(dataset, n_epochs, enable_prints)
+        self._train(dataset, n_epochs, save_checkpoints, enable_prints)
         pass
     
     def save_model(self, file_name: str) -> None:
