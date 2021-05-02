@@ -169,7 +169,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
                     axs[int(i%3), int(i/3)].plot(generated_sample.numpy())
                 plt.show()
                 print()
-            if (save_checkpoints and (epoch != 0) and (epoch%100 == 0)):
+            if (save_checkpoints and (epoch != 0) and (epoch%1000 == 0)):
                 self.save_weights("gan_ad_" + str(date.today()) + "_epoch_" + str(epoch) + ".h5")
                 
     def fit_scaler(self, data: pd.DataFrame) -> None:
@@ -304,18 +304,18 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             X.iloc[[row]] = np.transpose(mean_vals).iloc[[0],:].values
 
         return X
-        
-    def predict_anomaly_scores(
+    
+    def predict_series_anomaly_scores(
             self, X: pd.DataFrame, *args, **kwargs
         ) -> pd.Series:
         
         if(X.shape[0] < self._window_size):
-            print("Not enough data to predict anomaly scores.")
-            return
+            # print("Not enough data to predict anomaly scores.")
+            nan_array = np.empty(X.shape[0])
+            nan_array[:] = np.nan
+            return pd.Series(nan_array)
         
         resid = X.shape[0]%self._window_size
-        if(resid != 0):
-            print("Ignoring last " + str(resid) + " samples (incomplete window).")
         
         # checking if there are any NaN values
         is_NaN = X.isnull()
@@ -333,6 +333,26 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         if(not rows_with_NaN.empty):
             anomaly_score.at[rows_with_NaN.index] = np.nan
+        
+        if(resid != 0):
+            # print("Ignoring last " + str(resid) + " samples (incomplete window).")
+            nan_array = np.empty(resid)
+            nan_array[:] = np.nan
+            nan_series = pd.Series(nan_array)
+            anomaly_score = pd.concat([anomaly_score, nan_series], axis=0).reset_index(drop=True) 
+        
+        return anomaly_score
+        
+    def predict_anomaly_scores(
+            self, X: pd.DataFrame, *args, **kwargs
+        ) -> pd.Series:
+        
+        if(self._id_columns == None):
+            anomaly_score = self.predict_series_anomaly_scores(X)
+        else:
+            dfs = [x.reset_index(drop=True) for _, x in X.groupby(self._id_columns)]
+            [df.drop(columns=self._id_columns, inplace=True) for df in dfs]
+            anomaly_score = pd.concat([self.predict_series_anomaly_scores(df) for df in dfs], axis=0).reset_index(drop=True)
             
         return anomaly_score
     
