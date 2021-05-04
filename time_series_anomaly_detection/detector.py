@@ -377,7 +377,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             dataset = dataset.shuffle(buffer_size=len(data), seed=6)
         return dataset
     
-    def fit(self, X: pd.DataFrame, n_epochs: int, d_learning_rate: float = 0.0002,
+    def fit(self, X: pd.DataFrame, n_epochs: int = 10, d_learning_rate: float = 0.0002,
             g_learning_rate: float = 0.00002, save_checkpoints: Optional[bool] = False,
             enable_prints: Optional[bool] = False, *args, **kwargs) -> None:
         """
@@ -390,7 +390,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         X : pd.DataFrame
             The raw training data. The columns contain features and
             possibly also identifiers of individual time series (given in id_columns).
-        n_epochs : int
+        n_epochs : int, default 10
             Number of iterations over dataset to train the GAN-AD model.
         d_learning_rate : float, default 0.0002
             Learning rate of optimizer used for the discriminator.
@@ -402,7 +402,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Enables or forbids printing the training progress.
         """
         id_cols = len(self._id_columns) if self._id_columns is not None else 0
-        self._n_features = X.shape[0] - id_cols
+        self._n_features = X.shape[1] - id_cols
         
         # build GAN-AD model architecture
         self._gan_ad = self._build_gan_ad()
