@@ -32,11 +32,10 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     """
     def __init__(
             self,
-            window_size: int,
-            shift: int,
-            batch_size: int,
-            latent_dim: int,
-            n_features: int,
+            window_size: int = 8,
+            shift: int = 3,
+            batch_size: int = 8,
+            latent_dim: int = 1,
             id_columns: Optional[Iterable[str]] = None
     ):
         """
@@ -44,19 +43,17 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         the training process and data supplied later.
         Parameters
         ----------
-        window_size : int
+        window_size : int, default 8
             Length of the window taken across time series sequences.
             The window is applied to both train and test data in order
             to subdivide long sequences into smaller time series.
-        shift : int
+        shift : int, default 3
             Length of window shift applied to both train in order
             to subdivide long sequences into smaller time series.
-        batch_size : int
+        batch_size : int, default 8
             The number of time series samples in training dataset batch.
-        latent_dim : int
+        latent_dim : int, default 1
             Latent space dimension used during GAN-AD model training.
-        n_features : int
-            Number of data columns, meaning features in every timestep.
         id_columns : Iterable[str], default None
             Names of ID columns used to separate individual time series.
         """
@@ -66,16 +63,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._shift = shift
         self._batch_size = batch_size
         self._latent_dim = latent_dim
-        self._n_features = n_features
         self._id_columns = id_columns
         
         self._scaler = StandardScaler()
         self._bce = BinaryCrossentropy()
         
-        # build GAN-AD model architecture
-        self._gan_ad = self._build_gan_ad()
-        self._discriminator = self._gan_ad.get_layer('discriminator')
-        self._generator = self._gan_ad.get_layer('generator')
         
     def _build_discriminator(self) -> keras.Model:
         """
@@ -409,6 +401,14 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         enable_prints : Optional[bool], default False
             Enables or forbids printing the training progress.
         """
+        id_cols = len(self._id_columns) if self._id_columns is not None else 0
+        self._n_features = X.shape[0] - id_cols
+        
+        # build GAN-AD model architecture
+        self._gan_ad = self._build_gan_ad()
+        self._discriminator = self._gan_ad.get_layer('discriminator')
+        self._generator = self._gan_ad.get_layer('generator')
+        
         dataset = self._preprocess_data(X)
         
         # initialize optimizers for discriminator and generator network
