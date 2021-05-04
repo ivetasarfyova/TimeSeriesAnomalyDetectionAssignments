@@ -41,11 +41,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     ):
         """
         Inits GAN_AD class with parameters which are related to
-        the data supplied later.
+        the training process and data supplied later.
         Parameters
         ----------
         window_size : int
-            Length of window taken across time series sequences.
+            Length of the window taken across time series sequences.
             The window is applied to both train and test data in order
             to subdivide long sequences into smaller time series.
         shift : int
@@ -56,9 +56,9 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         latent_dim : int
             Latent space dimension used during GAN-AD model training.
         n_features : int
-            Number of data features columns.
-        id_columns : Iterable[str], deafult None
-            Number of ID columns used to separate individual time series.
+            Number of data columns, meaning features in every timestep.
+        id_columns : Iterable[str], default None
+            Names of ID columns used to separate individual time series.
         """
         super().__init__()
         
@@ -79,7 +79,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
     def _build_discriminator(self) -> keras.Model:
         """
-        Method used to construct the architecture of discriminator.
+        Method used to construct the discriminator network.
         
         Returns
         -------
@@ -100,7 +100,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def _build_generator(self) -> keras.Model:
         """
-        Method used to construct the architecture of generator.
+        Method used to construct the generator network.
         
         Returns
         -------
@@ -121,7 +121,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def _build_gan_ad(self) -> keras.Model:
         """
-        Merges together both componentss of GAN-AD into one model.
+        Merges both components of GAN-AD together into one model.
         
         Returns
         -------
@@ -141,15 +141,15 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def _get_discriminator_loss(self, real: tf.Tensor, generated: tf.Tensor) -> tf.Tensor:
         """
-        Computes loss of the discriminator from real time series samples and
-        samples obtained from the generator evaluated by the discriminator.
+        Computes loss of the discriminator using its output opinion for 
+        real time series samples and samples obtained from the generator.
         
         Parameters
         ----------
         real : tf.Tensor
             Discriminator's probability opinion of real time series data.
         generated : tf.Tensor
-            Discriminator's probability opinion of fake time series
+            Discriminator's probability opinion of fake time series data
             obtained from the generator.
         Returns
         -------
@@ -166,13 +166,13 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def _get_generator_loss(self, generated: tf.Tensor) -> tf.Tensor:
         """
-        Computes loss of the generator from generated time series samples
+        Computes loss of the generator using generated time series samples
         evaluated by the discriminator.
         
         Parameters
         ----------
         generated : tf.Tensor
-            Discriminator's probability opinion of fake time series
+            Discriminator's probability opinion of fake time series data
             obtained from the generator.
             
         Returns
@@ -186,7 +186,9 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     def _fit_batch(self, batch: tf.Tensor, z: tf.Tensor) -> Tuple:
         """
         Trains model with a single batch of real time series data
-        and a single batch of generated latent vectors.
+        and a single batch of generated latent vectors.        
+        This function performs a single weight update for both of 
+        the networks.
         
         Parameters
         ----------
@@ -249,10 +251,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         dataset : tf.data.Dataset
             Time series training data.
         epochs : int
-            Number of iterations over dataset to train the GAN-AD model.
-        save_checkpoints : Optional[bool], deafult False
-            Value determinating whether to save model during the training or not.
-        enable_prints : Optional[bool], deafult False
+            Number of iterations over the dataset to train the GAN-AD model.
+        save_checkpoints : Optional[bool], default False
+            Value determinating whether to periodically save the model
+            during the training or not.
+        enable_prints : Optional[bool], default False
             Value determinating whether to print the training progress or not.
         """
         loss_history = []
@@ -315,7 +318,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     def transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Standardizes the data by centering and scaling using
-        mean and standard deviation computed before.
+        mean and standard deviation stored in a previously fitted scaler.
         
         Parameters
         ----------
@@ -325,7 +328,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         Returns
         -------
         pd.DataFrame
-            Standardize data.
+            Standardized data.
         """
         data = self._scaler.transform(data)
         return pd.DataFrame(data)
@@ -338,7 +341,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         Parameters
         ----------
         data : pd.DataFrame
-            Time series data to be preprocessed into TensorFlow dataset.
+            Time series data to be preprocessed into a TensorFlow dataset.
             
         Returns
         -------
@@ -357,12 +360,13 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         Preprocesses time series identified by the id_columns.
         In case of multiple time series, the function separates the input 
-        data into individual time series.
+        data into several individual time series.
         
         Parameters
         ----------
         data : pd.DataFrame
             Time series data to be preprocessed into TensorFlow dataset.
+            Must contain all of the columns specified in id_columns.
             
         Returns
         -------
@@ -386,23 +390,23 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             enable_prints: Optional[bool] = False, *args, **kwargs) -> None:
         """
         Fits the GAN-AD model according to the given training data and hyperparameter
-        setting. Function also allows to enables prints and saving checkpoints
+        setting. Function also allows to enable prints and saving checkpoints
         during the model's training.
         
         Parameters
         ----------
         X : pd.DataFrame
             The raw training data. The columns contain features and
-            possibly also identifiers of individual time series.
+            possibly also identifiers of individual time series (given in id_columns).
         n_epochs : int
             Number of iterations over dataset to train the GAN-AD model.
         d_learning_rate : float, default 0.0002
             Learning rate of optimizer used for the discriminator.
         g_learning_rate : float, default 0.00002
             Learning rate of optimizer used for the generator.
-        save_checkpoints : Optional[bool], deafult False
+        save_checkpoints : Optional[bool], default False
             Enables or forbids saving checkpoints during the training.
-        enable_prints : Optional[bool], deafult False
+        enable_prints : Optional[bool], default False
             Enables or forbids printing the training progress.
         """
         dataset = self._preprocess_data(X)
@@ -430,14 +434,14 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     # Maximum Mean Discrepancy Auto-Encoding Generative Adversarial Networks (MAEGAN)
     def _rbf_kernel(self, x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         """
-        Calculates Radial Basis Function (RBF) kernel.
+        Calculates the Radial Basis Function (RBF) kernel.
         
         Parameters
         ----------
         x : tf.Tensor
-            Vector to be compared (represetns single time series window).
+            Vector to be compared (represents a single time series window).
         y : tf.Tensor
-            Vector to be compared (represetns single time series window).
+            Vector to be compared (represents a single time series window).
         
         Returns
         -------
@@ -456,14 +460,15 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def _get_mmd_similarity(self, x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
         """
-        Computes similarity of two input vectors.
+        Computes the similarity of two input vectors.
+        Currently it is only possible to use the RBF kernel. 
         
         Parameters
         ----------
         x : tf.Tensor
-            Vector to be compared (represetns single time series window).
+            Vector to be compared (represents a single time series window).
         y : tf.Tensor
-            Vector to be compared (represetns single time series window).
+            Vector to be compared (represents a single time series window).
             
         Returns
         -------
@@ -484,8 +489,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         Parameters
         ----------
         sample : tf.Tensor
-            Time series window from the dataset to which is being found 
-            the latent space representation.
+            Time series window from the dataset whose latent space 
+            representation is being searched for.
             
         Returns
         -------
@@ -508,7 +513,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             reconstruction_loss_per_sample = 1 - similarity_per_sample
             return reconstruction_loss_per_sample
         
-        # iteratively improve the latent representation of the inputed sample
+        # iteratively improve the latent representation of the input sample
         for i in range(1000):
             RMSprop(learning_rate=0.01).minimize(get_loss, var_list=[z_opt])
             if (tf.reduce_mean(get_loss()) < tolerance):
@@ -540,7 +545,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
     def predict_window_anomaly_scores(self, X: pd.DataFrame) -> tf.Tensor:
         """
-        Predicts an anomaly score of the time series window for each timestamp.
+        Predicts an anomaly score of the time series window for each timestep.
         
         Parameters
         ----------
@@ -566,7 +571,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         # the equation for the anomaly score is slightly modified and inspired by the following paper
         # https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8942842&tag=1
-        # the main difference from the our paper, is that the second part of the equation
+        # the main difference from our paper is that the second part of the equation
         # is not weighted output from the discriminator, but weighted (1 - output from the discriminator) instead 
         
         # obtain anomaly score
@@ -575,16 +580,16 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def predict_series_anomaly_scores(self, X: pd.DataFrame) -> pd.Series:
         """
-        Predicts an anomaly score of the time series on the input for each timestamp.
-        Individual time series is being processed by logical parts. The input data
-        are split to smaller time series of window size. Incomplete windows are
-        filled with NaN values. For the input data of insufficient size (less than one window)
-        is returned the Series of NaN values.
+        Predicts an anomaly score of the time series on the input for each timestep.
+        Individual time series are being processed by parts. The input data
+        are divided into smaller time series with the length of a window size.
+        Incomplete windows are filled with NaN values. For the input data
+        of insufficient size (less than one window) we return a Series of NaN values.
         
         Parameters
         ----------
         X : pd.DataFrame
-            Individual time series for which the anomaly scores are to be predicted.
+            Individual time series for which the anomaly scores are predicted.
             
         Returns
         -------
@@ -630,10 +635,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def predict_anomaly_scores(self, X: pd.DataFrame, *args, **kwargs) -> pd.Series:
         """
-        Predicts an anomaly score of the time series on the input for each timestamp. 
-        The higher the score, the more abnormal the measured timestamp sample is.
-        Time series is being processed by logical parts. In case of multiple time series
-        provided on the input, the time series is split to individual time series.
+        Predicts an anomaly score of the time series on the input for each timestep. 
+        The higher the score, the more abnormal the measured timestep sample is.
+        Time series is being processed by window-sized parts. In the case of multiple 
+        time series provided on the input, the time series is split to several individual
+        time series using a id_columns.
         
         Parameters
         ----------
@@ -656,21 +662,21 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def identify_anomaly(self, X: pd.DataFrame, threshold: Optional[int] = 1) -> np.array:
         """
-        Identifies anomalies in the inputed time series. An anomaly is detected
+        Identifies anomalies in the input time series. An anomaly is detected
         if the cross entropy of the anomaly score exceeds the threshold.
         
         Parameters
         ----------
         X : pd.DataFrame
             Time series for which the anomalies are to be predicted.
-        treshold : Optional[int], default 1
+        threshold : Optional[int], default 1
             Value which determinates if the timestamp is going to be 
             flaged as an anomaly.
             
         Returns
         -------
         np.array
-            Identified timestamps where the anomalies appear.
+            Identified timesteps where the anomalies appear.
         """
         anomaly_score = self.predict_anomaly_scores(X)
         cross_entropy = np.log(anomaly_score)
