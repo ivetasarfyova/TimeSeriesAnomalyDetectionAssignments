@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from datetime import date
 import random
+from typing import Dict
 
 from time_series_anomaly_detection.abstractions import (
     TimeSeriesAnomalyDetector
@@ -28,6 +29,10 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             shift: int = 3,
             batch_size: int = 8,
             latent_dim: int = 1,
+            discriminator_params: Dict = {'lstm_units': 150, 'dense_units': 50, \
+                                          'dropout_rate': 0.2},
+            generator_params: Dict = {'conv_filters': 30, 'conv_kernel_size': 3, \
+                                      'lstm_units': 200},
             id_columns: Optional[Iterable[str]] = None
     ):
         """
@@ -46,6 +51,12 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             The number of time series samples in training dataset batch.
         latent_dim : int, default 1
             Latent space dimension used during GAN-AD model training.
+        discriminator_params : Dict[str, int], default {'lstm_units': 150, 
+                               'dense_units': 50, 'dropout_rate': 0.2}
+            Discriminator hyperparameters specification.                    
+        generator_params : Dict[str, int], default {'conv_filters': 30,
+                           'conv_kernel_size': 3, 'lstm_units': 200}
+            Generator hyperparameters specification.                
         id_columns : Optional[Iterable[str]]
             Names of ID columns used to separate individual time series.
         """
@@ -55,6 +66,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._shift = shift
         self._batch_size = batch_size
         self._latent_dim = latent_dim
+        self._discriminator_params = discriminator_params
+        self._generator_params = generator_params
         self._id_columns = id_columns
         
         self._scaler = StandardScaler()
@@ -72,11 +85,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         data = Input(shape=(self._window_size, self._n_features))
         
-        x = LSTM(150)(data)
-        x = Dense(50)(x)
+        x = LSTM(self._discriminator_params['lstm_units'])(data)
+        x = Dense(self._discriminator_params['dense_units'])(x)
         x = BatchNormalization()(x)
         x = LeakyReLU()(x)
-        x = Dropout(0.2)(x)
+        x = Dropout(self._discriminator_params['dropout_rate'])(x)
         
         decision = Dense(1, activation='sigmoid')(x)
         model = keras.Model(inputs=[data], outputs=[decision], name='discriminator')
@@ -93,10 +106,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         z = Input(shape=(self._window_size, self._latent_dim))
         
-        x = Conv1D(30, padding='same', kernel_size=3)(z)
+        x = Conv1D(self._generator_params['conv_filters'], padding='same', \
+                   kernel_size=self._generator_params['conv_kernel_size'])(z)
         x = BatchNormalization()(x)
         x = LeakyReLU()(x)
-        x = LSTM(200)(z)
+        x = LSTM(self._generator_params['lstm_units'])(z)
         x = Dense(self._window_size * self._n_features, activation='linear')(x)
         
         series = Reshape((self._window_size, self._n_features))(x)
