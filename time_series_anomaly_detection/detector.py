@@ -510,7 +510,6 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         z_init = tf.random.normal([self._window_size, self._latent_dim])
         
         z_opt = tf.Variable(z_init, trainable=True, dtype=tf.float32)
-        mse = tf.keras.losses.MeanSquaredError()
         
         def get_loss():
             generated_sample = self._generator(tf.reshape(z_opt, [1, self._window_size, self._latent_dim]), training=False)[0]
