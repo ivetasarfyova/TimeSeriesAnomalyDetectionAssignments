@@ -545,7 +545,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         mean_vals = pd.DataFrame(X.mean())
         for row in rows_with_NaN:
-            X.iloc[[row]] = np.transpose(mean_vals).iloc[[0], :].values
+            X.iloc[[row]] = mean_vals.transpose().iloc[[0], :].values
         return X
         
     def predict_window_anomaly_scores(self, X: pd.DataFrame) -> tf.Tensor:
