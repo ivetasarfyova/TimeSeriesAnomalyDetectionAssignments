@@ -46,7 +46,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             The number of time series samples in training dataset batch.
         latent_dim : int, default 1
             Latent space dimension used during GAN-AD model training.
-        id_columns : Iterable[str], default None
+        id_columns : Optional[Iterable[str]]
             Names of ID columns used to separate individual time series.
         """
         super().__init__()
