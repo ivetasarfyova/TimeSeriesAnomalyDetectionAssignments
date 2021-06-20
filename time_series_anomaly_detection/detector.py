@@ -4,8 +4,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.losses import BinaryCrossentropy
-from tensorflow.keras.layers import *
-from tensorflow.keras.optimizers import *
+from tensorflow.keras.layers import LSTM, Dense, BatchNormalization,\
+                                    LeakyReLU, Dropout, Input, Conv1D, \
+                                    Reshape
+from tensorflow.keras.optimizers import Adam, RMSprop
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
