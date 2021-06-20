@@ -19,16 +19,6 @@ from time_series_anomaly_detection.abstractions import (
 class GAN_AD(TimeSeriesAnomalyDetector):
     """
     Time series GAN anomaly detector.
-    Parameters
-    ----------
-    id_columns: Iterable[str], optional
-        ID columns used to identify individual time series.
-        Should be specified in case the detector is provided with
-        time series during training or inference with ID columns
-        included. Using these columns the detector can separate individual
-        time series and not use ID columns as feature columns.
-        In case they are not specified, all columns are regarded as feature
-        columns and the provided data is regarded as a single time series.
     """
     def __init__(
             self,
