@@ -484,7 +484,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         xy_kernel = self._rbf_kernel(x, y)
         return xy_kernel
     
-    def _find_mapping(self, sample: tf.Tensor) -> tf.Tensor:
+    def _find_mapping(self, sample: pd.DataFrame) -> tf.Tensor:
         """
         Finds the (sub)optimal latent space representation of the time
         series window sample on the input. Algorithm iteratively improves 
@@ -494,7 +494,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         Parameters
         ----------
-        sample : tf.Tensor
+        sample : pd.DataFrame
             Time series window from the dataset whose latent space 
             representation is being searched for.
             
