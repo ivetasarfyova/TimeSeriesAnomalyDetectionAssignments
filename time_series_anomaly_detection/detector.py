@@ -384,8 +384,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         return dataset
     
     def fit(self, X: pd.DataFrame, n_epochs: int = 10, d_learning_rate: float = 0.0002,
-            g_learning_rate: float = 0.00002, save_checkpoints: Optional[bool] = False,
-            enable_prints: Optional[bool] = False, *args, **kwargs) -> None:
+            g_learning_rate: float = 0.00002, save_checkpoints: bool = False,
+            enable_prints: bool = False, *args, **kwargs) -> None:
         """
         Fits the GAN-AD model according to the given training data and hyperparameter
         setting. Function also allows to enable prints and saving checkpoints
@@ -402,9 +402,9 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Learning rate of optimizer used for the discriminator.
         g_learning_rate : float, default 0.00002
             Learning rate of optimizer used for the generator.
-        save_checkpoints : Optional[bool], default False
+        save_checkpoints : bool, default False
             Enables or forbids saving checkpoints during the training.
-        enable_prints : Optional[bool], default False
+        enable_prints : bool, default False
             Enables or forbids printing the training progress.
         """
         id_cols = len(self._id_columns) if self._id_columns is not None else 0
