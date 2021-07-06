@@ -609,6 +609,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         resid = X.shape[0] % self._window_size
         
+        # check if there are any NaN values
+        is_NaN = X.isnull()
+        row_has_NaN = is_NaN.any(axis=1)
+        rows_with_NaN = X[row_has_NaN]
+        
         # fill the NaN values, so the generator could work properly
         if X.isnull().values.any():
             X = self._replace_NaN_values(X)
