@@ -254,7 +254,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Value determinating whether to periodically save the model
             during the training or not.
         enable_prints : bool, default False
-            Value determinating whether to print the training progress or not.
+            Value determinating whether to print the matplotlib plots
+            with the training progress or not.
         """
         loss_history = []
         for epoch in range(epochs):
