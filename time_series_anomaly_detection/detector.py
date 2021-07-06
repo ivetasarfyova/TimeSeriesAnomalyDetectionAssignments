@@ -239,7 +239,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._gan_ad.load_weights(file_name)
         
     def _train(self, dataset: tf.data.Dataset, epochs: int, save_checkpoints: bool = False,
-               enable_prints: bool = False) -> None:
+               enable_prints: bool = False, print_frequency: int = 500) -> None:
         """
         Trains the GAN-AD model on a dataset for a specific number of epochs,
         both supplied as input parameters.
@@ -256,6 +256,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         enable_prints : bool, default False
             Value determinating whether to print the matplotlib plots
             with the training progress or not.
+        print_frequency: int, default 500
+            Frequency of plotting visual training progress.
         """
         loss_history = []
         for epoch in range(epochs):
@@ -270,7 +272,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             # if enable_prints is True, print the progress of calculated losses, 
             # real vs generated time series window and grid of nine generated
             # time series windows
-            if ((epoch != 0) and (epoch % 500 == 0) and enable_prints):
+            if ((epoch != 0) and (epoch % print_frequency == 0) and enable_prints):
                 print(epoch, ". epoch")
                 print("Batch loss [disc_loss, gen_loss] :", np.mean(batch_loss_history, axis=0))
                 plt.plot(np.array([loss[0] for loss in loss_history]), color='green')
@@ -386,7 +388,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def fit(self, X: pd.DataFrame, n_epochs: int = 10, d_learning_rate: float = 0.0002,
             g_learning_rate: float = 0.00002, save_checkpoints: bool = False,
-            enable_prints: bool = False, *args, **kwargs) -> None:
+            enable_prints: bool = False, print_frequency: int = 500, *args, **kwargs) -> None:
         """
         Fits the GAN-AD model according to the given training data and hyperparameter
         setting. Function also allows to enable prints and saving checkpoints
@@ -407,6 +409,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Enables or forbids saving checkpoints during the training.
         enable_prints : bool, default False
             Enables or forbids printing the training progress.
+        print_frequency: int, default 500
+            Frequency of plotting visual training progress.
         """
         id_cols = len(self._id_columns) if self._id_columns is not None else 0
         self._n_features = X.shape[1] - id_cols
@@ -423,7 +427,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._generator_optimizer = Adam(learning_rate=g_learning_rate, beta_1=0.5)
         
         # train GAN-AD model
-        self._train(dataset, n_epochs, save_checkpoints, enable_prints)
+        self._train(dataset, n_epochs, save_checkpoints, enable_prints, print_frequency)
         pass
     
     def save_model(self, file_name: str) -> None:
