@@ -238,8 +238,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         self._gan_ad.load_weights(file_name)
         
-    def _train(self, dataset: tf.data.Dataset, epochs: int, save_checkpoints: Optional[bool] = False,
-               enable_prints: Optional[bool] = False) -> None:
+    def _train(self, dataset: tf.data.Dataset, epochs: int, save_checkpoints: bool = False,
+               enable_prints: bool = False) -> None:
         """
         Trains the GAN-AD model on a dataset for a specific number of epochs,
         both supplied as input parameters.
@@ -250,10 +250,10 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Time series training data.
         epochs : int
             Number of iterations over the dataset to train the GAN-AD model.
-        save_checkpoints : Optional[bool], default False
+        save_checkpoints : bool, default False
             Value determinating whether to periodically save the model
             during the training or not.
-        enable_prints : Optional[bool], default False
+        enable_prints : bool, default False
             Value determinating whether to print the training progress or not.
         """
         loss_history = []
@@ -665,7 +665,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             
         return anomaly_score
     
-    def identify_anomaly(self, X: pd.DataFrame, threshold: Optional[int] = 1) -> np.array:
+    def identify_anomaly(self, X: pd.DataFrame, threshold: int = 1) -> np.array:
         """
         Identifies anomalies in the input time series. An anomaly is detected
         if the cross entropy of the anomaly score exceeds the threshold.
@@ -674,7 +674,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Time series for which the anomalies are to be predicted.
-        threshold : Optional[int], default 1
+        threshold : int, default 1
             Value which determinates if the timestamp is going to be 
             flaged as an anomaly.
             
