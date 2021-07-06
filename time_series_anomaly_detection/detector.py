@@ -527,7 +527,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         return z_opt
     
-    def _replace_NaN_values(self, X: pd.DataFrame, rows_with_NaN: pd.Index) -> pd.DataFrame:
+    def _replace_NaN_values(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Replaces NaN values in the inputed DataFrame by the mean values
         computed featurewise from the non-NaN values.
@@ -536,8 +536,6 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Time series input data with NaNs to be replaced.
-        rows_with_NaN : pd.Index
-            Indexes of time series records containing at least one NaN value.
             
         Returns
         -------
@@ -611,14 +609,9 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         
         resid = X.shape[0] % self._window_size
         
-        # check if there are any NaN values
-        is_NaN = X.isnull()
-        row_has_NaN = is_NaN.any(axis=1)
-        rows_with_NaN = X[row_has_NaN]
-        
         # fill the NaN values, so the generator could work properly
-        if (not rows_with_NaN.empty):
-            X = self._replace_NaN_values(X, rows_with_NaN.index)
+        if X.isnull().values.any():
+            X = self._replace_NaN_values(X)
             
         X = self._scaler.transform(X)
         
