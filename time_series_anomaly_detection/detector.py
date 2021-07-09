@@ -238,7 +238,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         """
         self._gan_ad.load_weights(file_name)
         
-    def _train(self, dataset: tf.data.Dataset, epochs: int, save_checkpoints: bool = False,
+    def _train(self, dataset: tf.data.Dataset, epochs: int,
+               save_checkpoints: bool = False, saving_frequency: int = 1000,
                enable_prints: bool = False, print_frequency: int = 500) -> None:
         """
         Trains the GAN-AD model on a dataset for a specific number of epochs,
@@ -253,6 +254,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         save_checkpoints : bool, default False
             Value determinating whether to periodically save the model
             during the training or not.
+        saving_frequency : int, default 1000
+            Frequency of saving the model during its training.
         enable_prints : bool, default False
             Value determinating whether to print the matplotlib plots
             with the training progress or not.
@@ -301,7 +304,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
                 print()
                 
             # if save_checkpoints is True, continuously save the model's weights
-            if (save_checkpoints and (epoch != 0) and (epoch % 1000 == 0)):
+            if (save_checkpoints and (epoch != 0) and (epoch % saving_frequency == 0)):
                 self.save_weights("gan_ad_" + str(date.today()) + "_epoch_" + str(epoch) + ".h5")
                 
     def fit_scaler(self, data: pd.DataFrame) -> None:
@@ -388,7 +391,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
     
     def fit(self, X: pd.DataFrame, n_epochs: int = 10, d_learning_rate: float = 0.0002,
             g_learning_rate: float = 0.00002, save_checkpoints: bool = False,
-            enable_prints: bool = False, print_frequency: int = 500, *args, **kwargs) -> None:
+            saving_frequency: int = 1000, enable_prints: bool = False,
+            print_frequency: int = 500, *args, **kwargs) -> None:
         """
         Fits the GAN-AD model according to the given training data and hyperparameter
         setting. Function also allows to enable prints and saving checkpoints
@@ -407,6 +411,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Learning rate of optimizer used for the generator.
         save_checkpoints : bool, default False
             Enables or forbids saving checkpoints during the training.
+        saving_frequency : int, default 1000
+            Frequency of saving the model during its training.
         enable_prints : bool, default False
             Enables or forbids printing the training progress.
         print_frequency: int, default 500
@@ -427,7 +433,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         self._generator_optimizer = Adam(learning_rate=g_learning_rate, beta_1=0.5)
         
         # train GAN-AD model
-        self._train(dataset, n_epochs, save_checkpoints, enable_prints, print_frequency)
+        self._train(dataset, n_epochs, save_checkpoints, saving_frequency, enable_prints, print_frequency)
         pass
     
     def save_model(self, file_name: str) -> None:
