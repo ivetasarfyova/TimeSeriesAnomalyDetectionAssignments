@@ -502,7 +502,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         xy_kernel = self._rbf_kernel(x, y)
         return xy_kernel
 
-    def _find_mapping(self, sample: pd.DataFrame) -> tf.Tensor:
+    def _find_mapping(self, sample: pd.DataFrame, max_iterations: int = 1000, tolerance: float = 0.05) -> tf.Tensor:
         """
         Finds the (sub)optimal latent space representation of the time
         series window sample on the input. Algorithm iteratively improves 
@@ -515,15 +515,16 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         sample : pd.DataFrame
             Time series window from the dataset whose latent space 
             representation is being searched for.
-            
+        max_iterations: int, default 1000
+            Maximum number of iterations of the inverse mapping process.
+        tolerance : float, default 0.05
+            Tolerance treshold for the stoppping criterion of the iterative inverse
+            mapping process. Error is considered small enough if its smaller than tolerance.
         Returns
         -------
         tf.Tensor
             Latent space representation corresponding to the input.
         """
-        # error is considered small enough if its smaller than tolerance
-        tolerance = 0.05
-
         # sample random latent representation
         z_init = tf.random.normal([self._window_size, self._latent_dim])
 
@@ -538,7 +539,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             return reconstruction_loss_per_sample
 
         # iteratively improve the latent representation of the input sample
-        for i in range(1000):
+        for i in range(max_iterations):
             RMSprop(learning_rate=0.01).minimize(get_loss, var_list=[z_opt])
             if tf.reduce_mean(get_loss()) < tolerance:
                 break
@@ -565,7 +566,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         X = X.fillna(value=values)
         return X
 
-    def predict_window_anomaly_scores(self, X: pd.DataFrame) -> tf.Tensor:
+    def predict_window_anomaly_scores(self, X: pd.DataFrame, max_iterations: int = 1000,
+                                      tolerance: float = 0.05) -> tf.Tensor:
         """
         Predicts an anomaly score of the time series window for each timestep.
         
@@ -573,6 +575,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Time series window for which the anomaly scores are to be predicted.
+        max_iterations: int, default 1000
+            Maximum number of iterations of the inverse mapping process.
+        tolerance : float, default 0.05
+            Tolerance treshold for the stoppping criterion of the iterative inverse
+            mapping process. Error is considered small enough if its smaller than tolerance.
             
         Returns
         -------
@@ -602,7 +609,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         anomaly_score = tf.add((1 - lamda) * residuals, tf.cast(lamda * (1 - real_prob), tf.float64))
         return anomaly_score
 
-    def predict_series_anomaly_scores(self, X: pd.DataFrame) -> pd.Series:
+    def predict_series_anomaly_scores(self, X: pd.DataFrame, max_iterations: int = 1000,
+                                      tolerance: float = 0.05) -> pd.Series:
         """
         Predicts an anomaly score of the time series on the input for each timestep.
         Individual time series are being processed by parts. The input data
@@ -614,6 +622,11 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Individual time series for which the anomaly scores are predicted.
+        max_iterations: int, default 1000
+            Maximum number of iterations of the inverse mapping process.
+        tolerance : float, default 0.05
+            Tolerance treshold for the stoppping criterion of the iterative inverse
+            mapping process. Error is considered small enough if its smaller than tolerance.
             
         Returns
         -------
@@ -642,7 +655,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
 
         windows = [pd.DataFrame(X[i:i + self._window_size]) \
                    for i in range(0, X.shape[0] - resid, self._window_size)]
-        anomaly_score = tf.concat([self.predict_window_anomaly_scores(X_window) \
+        anomaly_score = tf.concat([self.predict_window_anomaly_scores(X_window, max_iterations, tolerance) \
                                    for X_window in windows], -1)
         anomaly_score = pd.Series(anomaly_score).copy()
 
@@ -659,7 +672,8 @@ class GAN_AD(TimeSeriesAnomalyDetector):
 
         return anomaly_score
 
-    def predict_anomaly_scores(self, X: pd.DataFrame, *args, **kwargs) -> pd.Series:
+    def predict_anomaly_scores(self, X: pd.DataFrame, max_iterations: int = 1000,
+                               tolerance: float = 0.05, *args, **kwargs) -> pd.Series:
         """
         Predicts an anomaly score of the time series on the input for each timestep. 
         The higher the score, the more abnormal the measured timestep sample is.
@@ -671,18 +685,23 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Time series for which the anomaly scores are to be predicted.
-        
+        max_iterations: int, default 1000
+            Maximum number of iterations of the inverse mapping process.
+        tolerance : float, default 0.05
+            Tolerance treshold for the stoppping criterion of the iterative inverse
+            mapping process. Error is considered small enough if its smaller than tolerance.
+            
         Returns
         -------
         pd.Series
             Predicted anomaly scores.
         """
         if self._id_columns is None:
-            anomaly_score = self.predict_series_anomaly_scores(X)
+            anomaly_score = self.predict_series_anomaly_scores(X, max_iterations, tolerance)
         else:
             dfs = [x.reset_index(drop=True) for _, x in X.groupby(self._id_columns)]
             [df.drop(columns=self._id_columns, inplace=True) for df in dfs]
-            anomaly_score = pd.concat([self.predict_series_anomaly_scores(df) for df in dfs],
+            anomaly_score = pd.concat([self.predict_series_anomaly_scores(df, max_iterations, tolerance) for df in dfs],
                                       axis=0).reset_index(drop=True)
 
         return anomaly_score
