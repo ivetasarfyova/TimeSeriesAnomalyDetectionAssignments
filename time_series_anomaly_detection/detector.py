@@ -706,7 +706,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
 
         return anomaly_score
 
-    def identify_anomaly(self, X: pd.DataFrame, threshold: int = 1) -> np.array:
+    def identify_anomaly(self, X: pd.DataFrame, threshold: float = 0) -> np.array:
         """
         Identifies anomalies in the input time series. An anomaly is detected
         if the cross entropy of the anomaly score exceeds the threshold.
@@ -715,7 +715,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         ----------
         X : pd.DataFrame
             Time series for which the anomalies are to be predicted.
-        threshold : int, default 1
+        threshold : float, default 0
             Value which determinates if the timestamp is going to be 
             flaged as an anomaly.
             
