@@ -562,7 +562,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
             Time series DataFrame with NaNs replaced with mean values.
         """
         mean_vals = pd.DataFrame(X.mean())
-        values = dict(zip(X.columns, mean_vals.transpose().iloc[[0], :].values[0]))
+        values = dict(zip(X.columns, mean_vals.transpose().values[0]))
         X = X.fillna(value=values)
         return X
 
@@ -586,7 +586,7 @@ class GAN_AD(TimeSeriesAnomalyDetector):
         tf.Tensor
             Predicted anomaly scores.
         """
-        z_mapping = self._find_mapping(X)
+        z_mapping = self._find_mapping(X, max_iterations, tolerance)
         lamda = 0.5
 
         # calculate the residuals
